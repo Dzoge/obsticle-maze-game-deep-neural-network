@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" data-ng-app="app">
+
+<head>
+    <meta charset="utf-8">
+    <title>Maze Game Neural Network</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="main.js"></script>
+    <style>
+        table tr td {
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px dashed lightgray;
+        }
+
+        table tr td.obsticle {
+            background-color: black;
+        }
+
+        table tr td.active {
+            background-color: green;
+        }
+
+        table tr td.dead {
+            background-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="maze" data-ng-controller="MainController as c">
+        <table>
+            <tr data-ng-repeat="r in c.maze">
+                <td data-ng-repeat="c in r" data-ng-class="{ 'obsticle' : c.obsticle, 'active' : c.active, 'dead': c.dead  }">
+                </td>
+                </td>
+        </table>
+        <div>
+            <button type="button" data-ng-click="c.moveLeft()">&lt;</button>
+            <button type="button" data-ng-click="c.moveRight()">&gt;</button>
+            <button type="button" data-ng-click="c.resetGame()">Reset</button>
+            <span>&nbsp; distance: {{ c.distance }}</span>
+        </div>
+    </div>
+    <script>
+        var app = angular.module('app', []);
+        app.controller('MainController', ['$scope', function ($scope) {
+            var _this = this;
+            $scope._this = _this;
+            _this.maze = null;
+            _this.distance = 0;
+
+            var game = new MazeGame(7, 200);
+            game.registerUpdateCallback(function (e) {
+                _this.playerPosition = e.data.playerPosition;
+                _this.finished = e.finished;
+                _this.distance = e.data.distance;
+                _this.maze = convertBooleanMaze(game.maze);
+                setTimeout(function () {
+                    $scope.$apply();
+                });
+            });
+
+            var convertBooleanMaze = function (maze) {
+                var convertedMaze = [];
+                for (var r = 0; r < maze.length; r++) {
+                    convertedMaze.push([]);
+                    for (var c = 0; c < maze[r].length; c++) {
+                        var modelVal = {
+                            obsticle: maze[r][c],
+                            active: r == maze.length - 1 && c == _this.playerPosition
+                        };
+                        modelVal.dead = modelVal.active && _this.finished;
+
+                        convertedMaze[r].push(modelVal);
+                    }
+                }
+                return convertedMaze;
+            }
+
+            _this.moveLeft = function () { game.executeCommand("left"); }
+            _this.moveRight = function () { game.executeCommand("right"); }
+            _this.resetGame = function () { game.executeCommand("reset"); }
+
+            $(window).on('keyup', function (e) {
+                switch (e.keyCode) {
+                    case 37:
+                        _this.moveLeft();
+                        break;
+
+                    case 39:
+                        _this.moveRight();
+                        break;
+
+                    case 27:
+                    case 82:
+                        _this.resetGame();
+                        break;
+                }
+            });
+        }]);
+    </script>
+</body>
+
+</html>
